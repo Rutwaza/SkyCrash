@@ -1,0 +1,156 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>SkyCrash Admin - Predictor</title>
+<link rel="icon" type="image/svg+xml" href="/favicon.svg">
+<style>
+  :root { --bg:#0e0e10; --card:#17171c; --line:#2a2a33; --txt:#eee; --mut:#8a8a98; --red:#e5173f; --grn:#28a909; --amb:#ffb300; --pur:#b388ff; }
+  * { box-sizing:border-box; }
+  body { margin:0; background:var(--bg); color:var(--txt); font:14px system-ui,sans-serif; }
+  header { display:flex; justify-content:space-between; align-items:center; padding:12px 20px; border-bottom:1px solid var(--line); }
+  h1 { margin:0; font-size:18px; color:var(--red); } h2 { font-size:15px; margin:22px 0 8px; display:flex; align-items:center; gap:10px; }
+  a { color:#fff; } main { padding:16px 20px; max-width:1300px; margin:auto; }
+  input, select { padding:8px; background:#0e0e10; color:var(--txt); border:1px solid var(--line); border-radius:8px; width:100%; }
+  button { padding:7px 12px; border:0; border-radius:8px; cursor:pointer; color:#fff; background:#333; }
+  button.ok { background:var(--grn); } button.no { background:#b3243b; } button.pri { background:var(--red); }
+  .stats { display:grid; grid-template-columns:repeat(auto-fit,minmax(190px,1fr)); gap:10px; }
+  .stat { background:var(--card); padding:12px; border-radius:10px; } .stat span { color:var(--mut); font-size:12px; } .stat b { display:block; font-size:19px; margin-top:4px; }
+  .form { display:grid; grid-template-columns:repeat(auto-fit,minmax(170px,1fr)); gap:10px; background:var(--card); padding:14px; border-radius:10px; align-items:end; }
+  .form label { font-size:12px; color:var(--mut); display:block; margin-bottom:4px; }
+  .wrap { overflow-x:auto; background:var(--card); border-radius:10px; }
+  table { width:100%; border-collapse:collapse; } th, td { padding:8px 10px; text-align:left; border-bottom:1px solid var(--line); white-space:nowrap; }
+  th { color:var(--mut); font-size:12px; } td input { min-width:70px; }
+  .badge { padding:2px 8px; border-radius:10px; font-size:12px; }
+  .scheduled,.pending { background:#4a3b00; color:var(--amb); } .open,.approved { background:#12330a; color:#5ce65c; }
+  .ended { background:#2a2a33; color:#aaa; } .cancelled,.rejected { background:#3d1119; color:#ff6b81; }
+  .pos { color:#5ce65c; } .neg { color:#ff6b81; } small { color:var(--mut); }
+  .pill { padding:2px 10px; border-radius:10px; background:var(--amb); color:#000; font-weight:700; font-size:11px; }
+</style>
+</head>
+<body>
+<header><h1>SkyCrash Admin - Predictor</h1><a href="/admin">&larr; Deposits &amp; withdrawals</a></header>
+<main>
+  <div class="stats" id="stats"></div>
+
+  <h2>Pending purchase orders (MoMo / Crypto) <span class="pill" id="orderCount" style="display:none"></span></h2>
+  <div class="wrap"><table id="orders"></table></div>
+
+  <h2>Enable a pack manually for a user</h2>
+  <div class="form">
+    <div><label>Player phone</label><input id="aPhone" placeholder="07XXXXXXXX or +250..."></div>
+    <div><label>Class</label><select id="aClass"></select></div>
+    <div><label>Countdown before it opens (seconds)</label><input id="aDelay" type="number" value="30" min="5" max="600"></div>
+    <div><label>Price paid (RWF)</label><input id="aPaid" type="number" placeholder="default = class price"></div>
+    <div><label>Note (optional)</label><input id="aNote" placeholder="e.g. MoMo ref"></div>
+    <div><button class="ok" id="aGo" style="width:100%">Enable pack</button></div>
+  </div>
+
+  <h2>Player packs <select id="st" style="width:auto;margin-left:10px"><option value="live">Live only</option><option value="all">All history</option></select></h2>
+  <div class="wrap"><table id="list"></table></div>
+
+  <h2>Class definitions <small>(editing a class never changes packs already sold - payout is always capped, stake never is)</small></h2>
+  <div class="wrap"><table id="classes"></table></div>
+  <p><small>"Suggest price" simulates a player who sees every crash and plays perfectly with a 1,000 RWF stake, then applies the 1.5x margin and scales to your typed price. Since there's no stake cap, price this for your EXPECTED typical stake, not the worst case.</small></p>
+</main>
+
+<script>
+const $ = s => document.querySelector(s);
+const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const fmt = n => Number(n).toLocaleString('en-US');
+const when = t => t ? new Date(t).toLocaleString('en-GB', { dateStyle:'short', timeStyle:'short' }) : '-';
+const token = sessionStorage.getItem('adm');
+if (!token) location.href = '/admin';
+let classes = [];
+
+async function api(path, method = 'GET', body) {
+  const r = await fetch('/api/admin' + path, { method, headers: { 'Content-Type':'application/json', Authorization:'Bearer ' + token }, body: body ? JSON.stringify(body) : undefined });
+  const j = await r.json().catch(() => ({}));
+  if (r.status === 401) { sessionStorage.removeItem('adm'); location.href = '/admin'; throw new Error('Session expired'); }
+  if (!r.ok) throw new Error(j.error || 'Request failed');
+  return j;
+}
+
+async function loadStats() {
+  const s = await api('/peek/stats');
+  $('#stats').innerHTML = [
+    ['Packs sold today', fmt(s.soldToday) + ' RWF'],
+    ['Winnings paid today', fmt(s.profitPaidToday) + ' RWF'],
+    ['Net today', `<span class="${s.soldToday - s.profitPaidToday >= 0 ? 'pos' : 'neg'}">${fmt(s.soldToday - s.profitPaidToday)} RWF</span>`],
+    ['Daily budget', fmt(s.budget) + ' RWF' + (s.paused ? ' <span class="neg">PAUSED</span>' : '')],
+  ].map(([k, v]) => `<div class="stat"><span>${k}</span><b>${v}</b></div>`).join('');
+}
+
+async function loadOrders() {
+  const rows = await api('/peek/orders?status=pending');
+  $('#orderCount').style.display = rows.length ? 'inline-block' : 'none';
+  $('#orderCount').textContent = rows.length;
+  $('#orders').innerHTML = '<tr><th>ID</th><th>Time</th><th>User</th><th>Class</th><th>Method</th><th>Amount</th><th>Ref</th><th></th></tr>' +
+    (rows.length ? rows.map(o => `<tr><td>${o.id}</td><td>${when(o.created_at)}</td><td>${esc(o.phone)}</td><td>${esc(o.name)}</td>
+      <td>${o.method === 'momo' ? 'MoMo' : 'Crypto'}</td><td>${fmt(o.amount)}</td><td>${esc((o.provider_ref||'').slice(0,6).toUpperCase())}</td>
+      <td><button class="ok" data-act="ord-ok" data-id="${o.id}">Approve</button> <button class="no" data-act="ord-no" data-id="${o.id}">Reject</button></td></tr>`).join('')
+      : '<tr><td colspan="8" style="text-align:center;color:var(--mut)">No pending orders</td></tr>');
+}
+
+async function loadClasses() {
+  classes = await api('/peek/classes');
+  $('#aClass').innerHTML = classes.filter(c => c.active).map(c => `<option value="${c.id}">${esc(c.name)} - ${c.predictions} predictions - ${fmt(c.price)} RWF</option>`).join('');
+  const row = (c, i) => `<tr data-i="${i}">
+    <td><input data-f="name" value="${esc(c.name ?? '')}"></td>
+    <td><input data-f="predictions" type="number" value="${c.predictions ?? 10}"></td>
+    <td><input data-f="maxMult" type="number" step="0.5" value="${c.max_mult ?? 10}"></td>
+    <td><input data-f="price" type="number" value="${c.price ?? 0}"></td>
+    <td><input data-f="active" type="checkbox" ${c.active !== false ? 'checked' : ''} style="width:auto"></td>
+    <td><button data-act="quote">Suggest price</button> <button class="ok" data-act="save">Save</button> <small class="q"></small></td></tr>`;
+  const blank = { id: '', name: '', predictions: 10, max_mult: 10, price: 0, active: true };
+  $('#classes').innerHTML = '<tr><th>Name</th><th>Predictions</th><th>Max win (x)</th><th>Price RWF</th><th>Active</th><th></th></tr>' +
+    classes.map(row).join('') + row(blank, -1).replace('<small class="q">', '<small class="q">(new class) ');
+}
+
+async function loadList() {
+  const rows = await api('/peek/list?status=' + $('#st').value);
+  $('#list').innerHTML = '<tr><th>ID</th><th>User</th><th>Class</th><th>Status</th><th>Predictions left</th><th>Max win</th><th>Opens / expires</th><th>Sold for</th><th></th></tr>' +
+    (rows.length ? rows.map(p => `<tr><td>${p.id}</td><td>${esc(p.phone)}</td><td>${esc(p.name)}</td><td><span class="badge ${p.status}">${p.status}</span></td>
+      <td>${p.predictions_left}</td><td>${p.max_mult}x</td>
+      <td>${p.status === 'scheduled' ? 'opens ' + when(p.opens_at) : p.status === 'open' ? 'expires ' + when(p.expires_at) : esc(p.ended_reason || '')}</td>
+      <td>${fmt(p.price_paid)}</td>
+      <td>${['scheduled','open'].includes(p.status) ? `<button class="no" data-act="disable" data-id="${p.id}">Disable</button>` : ''}</td></tr>`).join('')
+      : '<tr><td colspan="9" style="text-align:center;color:var(--mut)">Nothing here</td></tr>');
+}
+
+document.addEventListener('click', async e => {
+  const b = e.target.closest('button[data-act]'); if (!b) return;
+  try {
+    if (b.dataset.act === 'ord-ok') { if (!confirm('Confirm payment received and activate this pack?')) return; await api(`/peek/orders/${b.dataset.id}/approve`, 'POST', {}); }
+    if (b.dataset.act === 'ord-no') { const n = prompt('Reason (optional):'); if (n === null) return; await api(`/peek/orders/${b.dataset.id}/reject`, 'POST', { note: n }); }
+    if (b.dataset.act === 'disable') { if (!confirm('Close this pack now? The player is notified.')) return; await api(`/peek/${b.dataset.id}/disable`, 'POST', {}); }
+    if (b.dataset.act === 'quote' || b.dataset.act === 'save') {
+      const tr = b.closest('tr'); const i = +tr.dataset.i;
+      const v = f => { const el = tr.querySelector(`[data-f=${f}]`); return el.type === 'checkbox' ? el.checked : el.value; };
+      if (b.dataset.act === 'quote') {
+        const q = await api(`/peek/quote?predictions=${v('predictions')}&mult=${v('maxMult')}`);
+        tr.querySelector('.q').textContent = `player expects +${fmt(q.gainPer1000Stake)} per 1,000 RWF staked | suggested ${fmt(q.suggestedPricePer1000)} per 1,000 RWF - type your final price`;
+        return;
+      }
+      await api('/peek/classes', 'POST', { id: i >= 0 ? classes[i].id : undefined, name: v('name'), predictions: +v('predictions'), maxMult: +v('maxMult'), price: +v('price'), active: v('active') });
+      await loadClasses();
+    }
+  } catch (err) { alert(err.message); }
+  loadList(); loadStats(); loadOrders();
+});
+
+$('#aGo').onclick = async () => {
+  try {
+    await api('/peek/assign', 'POST', { phone: $('#aPhone').value, classId: +$('#aClass').value, delaySec: +$('#aDelay').value, pricePaid: $('#aPaid').value, note: $('#aNote').value });
+    $('#aPhone').value = ''; $('#aPaid').value = ''; $('#aNote').value = '';
+    loadList(); loadStats();
+  } catch (e) { alert(e.message); }
+};
+$('#st').onchange = loadList;
+
+(async () => { await loadClasses(); loadList(); loadStats(); loadOrders(); })();
+setInterval(() => { loadList(); loadStats(); loadOrders(); }, 5000);
+</script>
+</body>
+</html>

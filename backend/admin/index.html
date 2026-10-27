@@ -1,0 +1,157 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>SkyCrash Admin</title>
+<link rel="icon" type="image/svg+xml" href="/favicon.svg">
+<style>
+  :root { --bg:#0e0e10; --card:#17171c; --line:#2a2a33; --txt:#eee; --mut:#8a8a98; --red:#e5173f; --grn:#28a909; --amb:#ffb300; }
+  * { box-sizing: border-box; }
+  body { margin:0; background:var(--bg); color:var(--txt); font:14px system-ui, sans-serif; }
+  header { display:flex; justify-content:space-between; align-items:center; padding:12px 20px; border-bottom:1px solid var(--line); }
+  h1 { margin:0; font-size:18px; color:var(--red); }
+  main { padding:16px 20px; max-width:1300px; margin:auto; }
+  .login { max-width:340px; margin:14vh auto; background:var(--card); padding:24px; border-radius:12px; }
+  input, select { width:100%; padding:10px; background:#0e0e10; color:var(--txt); border:1px solid var(--line); border-radius:8px; }
+  button { padding:7px 12px; border:0; border-radius:8px; cursor:pointer; color:#fff; background:#333; }
+  button.ok { background:var(--grn); } button.no { background:#b3243b; } button.pri { background:var(--red); width:100%; margin-top:10px; padding:10px; }
+  .stats { display:grid; grid-template-columns:repeat(auto-fit,minmax(170px,1fr)); gap:10px; margin-bottom:16px; }
+  .stat { background:var(--card); padding:12px; border-radius:10px; }
+  .stat b { display:block; font-size:20px; margin-top:4px; } .stat span { color:var(--mut); font-size:12px; }
+  .tabs { display:flex; gap:8px; align-items:center; margin-bottom:10px; }
+  .tabs button.active { background:var(--red); }
+  .tabs select { width:auto; margin-left:auto; }
+  .wrap { overflow-x:auto; background:var(--card); border-radius:10px; }
+  table { width:100%; border-collapse:collapse; }
+  th, td { padding:10px 12px; text-align:left; border-bottom:1px solid var(--line); white-space:nowrap; }
+  th { color:var(--mut); font-weight:600; font-size:12px; }
+  .badge { padding:2px 8px; border-radius:10px; font-size:12px; }
+  .pending { background:#4a3b00; color:var(--amb); } .completed,.paid { background:#12330a; color:#5ce65c; } .failed,.rejected { background:#3d1119; color:#ff6b81; }
+  .pos { color:#5ce65c; } .neg { color:#ff6b81; }
+  [hidden] { display:none !important; }
+</style>
+</head>
+<body>
+
+<div id="login" class="login">
+  <h1>SkyCrash Admin</h1><br>
+  <input id="pw" type="password" placeholder="Admin password" autocomplete="current-password">
+  <button class="pri" id="loginBtn">Login</button>
+  <p id="loginErr" class="neg"></p>
+</div>
+
+<div id="app" hidden>
+  <header><h1>SkyCrash Admin</h1><button id="logout">Logout</button><a href="/admin/peek" style="color:#fff">Peek classes</a></header>
+  <main>
+    <div class="stats" id="stats"></div>
+    <div class="tabs">
+      <button data-tab="deposits" class="active">Deposits</button>
+      <button data-tab="withdrawals">Withdrawals</button>
+      <button data-tab="users">Users</button>
+      <input id="q" placeholder="Search phone..." style="width:180px; margin-left:12px" hidden>
+      <select id="status"><option value="pending">Pending</option><option value="all">All</option><option value="completed">Completed/Paid</option><option value="failed">Rejected</option></select>
+    </div>
+    <div class="wrap"><table id="tbl"></table></div>
+  </main>
+</div>
+
+<script>
+const $ = s => document.querySelector(s);
+const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const fmt = n => Number(n).toLocaleString('en-US');
+const when = t => t ? new Date(t).toLocaleString('en-GB', { dateStyle:'short', timeStyle:'short' }) : '-';
+let token = sessionStorage.getItem('adm') || '', tab = 'deposits', lastPending = -1;
+
+async function api(path, method = 'GET', body) {
+  const r = await fetch('/api/admin' + path, {
+    method, headers: { 'Content-Type':'application/json', Authorization:'Bearer ' + token },
+    body: body ? JSON.stringify(body) : undefined,
+  });
+  const j = await r.json().catch(() => ({}));
+  if (r.status === 401 && path !== '/login') { logout(); throw new Error('Session expired'); }
+  if (!r.ok) throw new Error(j.error || 'Request failed');
+  return j;
+}
+
+function logout() { token = ''; sessionStorage.removeItem('adm'); $('#app').hidden = true; $('#login').hidden = false; }
+
+function beep() {
+  try { const a = new (window.AudioContext || window.webkitAudioContext)(), o = a.createOscillator(), g = a.createGain();
+    o.connect(g); g.connect(a.destination); o.frequency.value = 880; g.gain.value = .1; o.start(); setTimeout(() => { o.stop(); a.close(); }, 250); } catch {}
+}
+
+$('#loginBtn').onclick = async () => {
+  try {
+    const j = await api('/login', 'POST', { password: $('#pw').value });
+    token = j.token; sessionStorage.setItem('adm', token);
+    $('#login').hidden = true; $('#app').hidden = false; load();
+  } catch (e) { $('#loginErr').textContent = e.message; }
+};
+$('#pw').onkeydown = e => { if (e.key === 'Enter') $('#loginBtn').click(); };
+$('#logout').onclick = logout;
+document.querySelectorAll('[data-tab]').forEach(b => b.onclick = () => {
+  tab = b.dataset.tab;
+  document.querySelectorAll('[data-tab]').forEach(x => x.classList.toggle('active', x === b));
+  $('#q').hidden = tab !== 'users'; $('#status').hidden = tab === 'users';
+  load();
+});
+$('#status').onchange = load; $('#q').oninput = load;
+
+async function load() {
+  if (!token) return;
+  try {
+    const s = await api('/summary');
+    const cards = [
+      ['Pending deposits', s.pendingDeposits], ['Pending withdrawals', s.pendingWithdrawals],
+      ['Deposits today', fmt(s.depositsToday) + ' RWF'], ['Withdrawals paid today', fmt(s.withdrawalsToday) + ' RWF'],
+      ['Bets today', fmt(s.betsToday) + ' RWF'], ['Payouts today', fmt(s.payoutsToday) + ' RWF'],
+      ['House profit today', `<span class="${s.houseProfitToday >= 0 ? 'pos' : 'neg'}">${fmt(s.houseProfitToday)} RWF</span>`],
+      ['Player balances (owed)', fmt(s.playerBalances) + ' RWF'],
+    ];
+    $('#stats').innerHTML = cards.map(([k, v]) => `<div class="stat"><span>${k}</span><b>${v}</b></div>`).join('');
+    const p = s.pendingDeposits + s.pendingWithdrawals;
+    if (lastPending >= 0 && p > lastPending) beep();
+    lastPending = p; document.title = (p ? `(${p}) ` : '') + 'SkyCrash Admin';
+
+    const st = $('#status').value;
+    if (tab === 'deposits') render(['ID','Time','User','Method','Amount (RWF)','Ref','Status','Action'],
+      (await api('/deposits?status=' + st)).map(d => [d.id, when(d.created_at), esc(d.phone), d.method === 'momo' ? 'MoMo' : 'Crypto', fmt(d.amount_rwf),
+        esc(d.provider_ref.slice(0, 6).toUpperCase()), `<span class="badge ${d.status}">${d.status}</span>`,
+        d.status === 'pending' ? `<button class="ok" data-act="dep-ok" data-id="${d.id}" data-amt="${d.amount_rwf}">Approve</button> <button class="no" data-act="dep-no" data-id="${d.id}">Reject</button>` : esc(d.note || when(d.reviewed_at))]));
+    else if (tab === 'withdrawals') render(['ID','Time','User','Method','Send to','Amount (RWF)','Status','Action'],
+      (await api('/withdrawals?status=' + (st === 'completed' ? 'paid' : st === 'failed' ? 'rejected' : st))).map(w => [w.id, when(w.created_at), esc(w.phone), w.method === 'momo' ? 'MoMo' : 'USDT TRC20',
+        `${esc(w.destination)} <button data-act="copy" data-v="${esc(w.destination)}">Copy</button>`, fmt(w.amount_rwf), `<span class="badge ${w.status}">${w.status}</span>`,
+        w.status === 'pending' ? `<button class="ok" data-act="wd-paid" data-id="${w.id}" data-amt="${w.amount_rwf}">Mark paid</button> <button class="no" data-act="wd-no" data-id="${w.id}">Reject + refund</button>` : esc(w.note || when(w.reviewed_at))]));
+    else render(['ID','Phone','Balance (RWF)','Joined'],
+      (await api('/users?q=' + encodeURIComponent($('#q').value))).map(u => [u.id, esc(u.phone), fmt(u.balance), when(u.created_at)]));
+  } catch (e) { console.error(e); }
+}
+
+function render(head, rows) {
+  $('#tbl').innerHTML = '<tr>' + head.map(h => `<th>${h}</th>`).join('') + '</tr>' +
+    (rows.length ? rows.map(r => '<tr>' + r.map(c => `<td>${c}</td>`).join('') + '</tr>').join('') : `<tr><td colspan="${head.length}" style="text-align:center;color:var(--mut)">Nothing here</td></tr>`);
+}
+
+document.addEventListener('click', async e => {
+  const b = e.target.closest('button[data-act]'); if (!b) return;
+  const { act, id, amt, v } = b.dataset;
+  try {
+    if (act === 'copy') { await navigator.clipboard.writeText(v); b.textContent = 'Copied'; return; }
+    if (act === 'dep-ok') {
+      const a = prompt('Amount actually RECEIVED (RWF):', amt); if (a === null) return;
+      if (!confirm(`Confirm you received ${fmt(a)} RWF and credit it to this player?`)) return;
+      await api(`/deposits/${id}/approve`, 'POST', { amount: +a });
+    }
+    if (act === 'dep-no') { const n = prompt('Reason (optional):'); if (n === null) return; await api(`/deposits/${id}/reject`, 'POST', { note: n }); }
+    if (act === 'wd-paid') { if (!confirm(`Confirm you have SENT ${fmt(amt)} RWF to the player?`)) return; await api(`/withdrawals/${id}/paid`, 'POST', {}); }
+    if (act === 'wd-no') { const n = prompt('Reason (optional). The money will be refunded to the player:'); if (n === null) return; await api(`/withdrawals/${id}/reject`, 'POST', { note: n }); }
+  } catch (err) { alert(err.message); }
+  load();
+});
+
+if (token) { $('#login').hidden = true; $('#app').hidden = false; load(); }
+setInterval(load, 8000);
+</script>
+</body>
+</html>

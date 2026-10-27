@@ -1,0 +1,29 @@
+{$SITE_ADDRESS::80} {
+	encode gzip
+
+	header {
+		X-Content-Type-Options nosniff
+		X-Frame-Options DENY
+		Referrer-Policy strict-origin-when-cross-origin
+	}
+
+	# API, realtime (websocket) and the admin pages go to the backend
+	@backend path /api/* /socket.io/* /admin /admin/*
+	handle @backend {
+		reverse_proxy backend:4000
+	}
+
+	# the Flutter web app lives under /app/
+	redir /app /app/ permanent
+	handle /app/* {
+		root * /srv
+		try_files {path} /app/index.html
+		file_server
+	}
+
+	# everything else = the landing page and its static files
+	handle {
+		root * /srv
+		file_server
+	}
+}

@@ -1,0 +1,319 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>SkyCrash - Ride the curve. Cash out before it crashes.</title>
+<meta name="description" content="SkyCrash is a fast, provably fair crash game. Bet from 100 RWF, deposit with Mobile Money or USDT, cash out before the plane flies away.">
+<meta name="theme-color" content="#E5173F">
+<meta property="og:title" content="SkyCrash - Ride the curve. Cash out before it crashes.">
+<meta property="og:description" content="A fast, provably fair crash game. Bet, watch the multiplier climb, cash out in time.">
+<meta property="og:type" content="website">
+<link rel="icon" type="image/svg+xml" href="/favicon.svg">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Poppins:ital,wght@0,400;0,600;0,800;1,900&display=swap" rel="stylesheet">
+<style>
+  :root { --bg:#0b0612; --panel:#15101f; --panel2:#1b1428; --line:#2c2140; --txt:#f3eefc; --mut:#a79bbd;
+          --red:#e5173f; --red2:#ff6a3d; --pur:#913ef8; --blue:#34b4ff; --grn:#28a909; }
+  * { box-sizing:border-box; } html { scroll-behavior:smooth; }
+  body { margin:0; background:var(--bg); color:var(--txt); font-family:Poppins, system-ui, -apple-system, 'Segoe UI', sans-serif; line-height:1.55; overflow-x:hidden; }
+  a { color:inherit; text-decoration:none; } [hidden] { display:none !important; }
+  .rays { position:fixed; inset:-60%; z-index:-2; pointer-events:none;
+          background:repeating-conic-gradient(from 0deg at 50% 42%, rgba(255,255,255,.035) 0 9deg, transparent 9deg 18deg);
+          animation:spin 160s linear infinite; }
+  body::before { content:""; position:fixed; inset:0; z-index:-3;
+          background:radial-gradient(900px 600px at 70% 8%, #4b1a8f55, transparent 70%), radial-gradient(700px 500px at 5% 70%, #e5173f22, transparent 70%); }
+  @keyframes spin { to { transform:rotate(360deg); } }
+  .star { position:fixed; width:2px; height:2px; background:#fff; border-radius:50%; z-index:-1; opacity:.3; animation:tw 3s ease-in-out infinite; }
+  @keyframes tw { 50% { opacity:.9; } }
+  .wrap { max-width:1140px; margin:auto; padding:0 20px; }
+
+  nav { position:sticky; top:0; z-index:10; backdrop-filter:blur(12px); background:rgba(11,6,18,.72); border-bottom:1px solid var(--line); }
+  nav .wrap { display:flex; align-items:center; gap:22px; height:68px; }
+  .brand { display:flex; align-items:center; gap:10px; font-weight:900; font-style:italic; font-size:24px; letter-spacing:-1px; }
+  .brand b { color:#ff2d55; } .brand svg { width:38px; height:38px; }
+  nav .links { display:flex; gap:22px; margin-left:auto; color:var(--mut); font-size:14px; }
+  nav .links a:hover { color:#fff; }
+  .btn { display:inline-block; padding:11px 22px; border-radius:12px; font-weight:600; font-size:15px; border:1px solid var(--line); background:var(--panel2); cursor:pointer; transition:.2s; }
+  .btn:hover { transform:translateY(-2px); border-color:#5b4690; }
+  .btn.primary { background:linear-gradient(135deg,var(--red),var(--red2)); border:0; box-shadow:0 8px 28px #e5173f55; }
+  .btn.primary:hover { box-shadow:0 12px 36px #e5173f88; }
+  .btn.big { padding:15px 34px; font-size:17px; border-radius:14px; }
+
+  .hero { display:grid; grid-template-columns:1.05fr 1fr; gap:34px; align-items:center; padding:64px 0 34px; }
+  .pill { display:inline-block; padding:5px 14px; border:1px solid var(--line); border-radius:99px; color:var(--mut); font-size:12px; letter-spacing:.5px; background:#ffffff08; }
+  h1 { font-size:clamp(36px,5.2vw,62px); line-height:1.05; margin:16px 0 18px; font-weight:800; letter-spacing:-1.5px; }
+  h1 span { background:linear-gradient(90deg,#ff2d55,#ff8a4a); -webkit-background-clip:text; background-clip:text; color:transparent; }
+  .lead { color:var(--mut); font-size:18px; max-width:540px; }
+  .cta { display:flex; gap:14px; flex-wrap:wrap; margin:28px 0 10px; }
+  .fine { color:var(--mut); font-size:12px; }
+
+  .demo { position:relative; border:1px solid var(--line); border-radius:22px; overflow:hidden; box-shadow:0 30px 80px #000a, 0 0 60px #913ef833; background:#0e0817; }
+  .demo svg { display:block; width:100%; height:auto; }
+  .demo .tag { position:absolute; top:12px; right:14px; font-size:10px; letter-spacing:1.5px; color:#ffffff88; background:#00000066; padding:3px 10px; border-radius:99px; }
+
+  .ticker { display:flex; gap:8px; flex-wrap:wrap; align-items:center; padding:14px 0 6px; }
+  .ticker small { color:var(--mut); margin-right:4px; }
+  .chip { padding:3px 12px; border-radius:99px; background:var(--panel2); font-weight:600; font-size:13px; }
+  .c1 { color:var(--blue); } .c2 { color:#b57cff; } .c3 { color:#ff4fd8; }
+
+  section { padding:70px 0 10px; }
+  h2 { font-size:clamp(26px,3.6vw,40px); margin:0 0 10px; letter-spacing:-1px; font-weight:800; }
+  .sub { color:var(--mut); max-width:620px; margin:0 0 34px; }
+  .grid { display:grid; gap:18px; } .g3 { grid-template-columns:repeat(3,1fr); } .g4 { grid-template-columns:repeat(4,1fr); }
+  .card { background:linear-gradient(180deg,var(--panel2),var(--panel)); border:1px solid var(--line); border-radius:18px; padding:24px; transition:.25s; }
+  .card:hover { transform:translateY(-4px); border-color:#5b4690; }
+  .card h3 { margin:12px 0 6px; font-size:18px; } .card p { margin:0; color:var(--mut); font-size:14px; }
+  .num { width:42px; height:42px; border-radius:12px; display:grid; place-items:center; font-weight:800; background:linear-gradient(135deg,var(--red),var(--red2)); }
+  .ico { font-size:28px; }
+
+  .fair { display:grid; grid-template-columns:1fr 1fr; gap:30px; align-items:center; }
+  .steps { background:#0a0612; border:1px solid var(--line); border-radius:16px; padding:20px; font-family:ui-monospace, Consolas, monospace; font-size:13px; color:#cdbff0; }
+  .steps div { margin:8px 0; } .steps em { color:#ff6a8a; font-style:normal; }
+  .hash { margin-top:12px; word-break:break-all; font-size:12px; color:#9fe39f; }
+  .pay { display:flex; flex-wrap:wrap; gap:12px; }
+  .pay span { padding:12px 22px; border-radius:14px; background:var(--panel2); border:1px solid var(--line); font-weight:600; }
+
+  .wins { display:grid; grid-template-columns:repeat(auto-fill,minmax(210px,1fr)); gap:12px; }
+  .win { background:#1d3512aa; border:1px solid #2f5a1d; border-radius:14px; padding:14px; }
+  .win b { color:#5ce65c; font-size:18px; } .win small { color:var(--mut); display:block; }
+
+  details { background:var(--panel); border:1px solid var(--line); border-radius:14px; padding:16px 20px; margin-bottom:10px; }
+  summary { cursor:pointer; font-weight:600; } details p { color:var(--mut); margin:10px 0 0; font-size:14px; }
+
+  .final { text-align:center; margin:70px 0 10px; padding:54px 20px; border-radius:26px; border:1px solid var(--line);
+           background:radial-gradient(500px 240px at 50% 0%, #e5173f44, transparent 70%), var(--panel); }
+  footer { margin-top:50px; border-top:1px solid var(--line); padding:30px 0 50px; color:var(--mut); font-size:13px; }
+  footer .age { display:inline-block; border:2px solid var(--red); color:#fff; border-radius:99px; padding:1px 10px; font-weight:800; margin-right:8px; }
+
+  @media (max-width:900px) {
+    .hero, .fair { grid-template-columns:1fr; } .g3, .g4 { grid-template-columns:1fr 1fr; } nav .links { display:none; } nav .btn.ghost { margin-left:auto; }
+  }
+  @media (max-width:560px) { .g3, .g4 { grid-template-columns:1fr; } }
+  @media (prefers-reduced-motion:reduce) { .rays, .star { animation:none; } html { scroll-behavior:auto; } }
+</style>
+</head>
+<body>
+<div class="rays"></div>
+
+<nav>
+  <div class="wrap">
+    <a class="brand" href="/">
+      <svg viewBox="0 0 64 64" aria-hidden="true">
+        <defs><radialGradient id="nb" cx="50%" cy="62%" r="80%"><stop offset="0" stop-color="#5A1FA8"/><stop offset=".55" stop-color="#1E0B38"/><stop offset="1" stop-color="#0A0412"/></radialGradient>
+        <linearGradient id="nc" x1="0" y1="1" x2="1" y2="0"><stop offset="0" stop-color="#E5173F"/><stop offset="1" stop-color="#FF7A45"/></linearGradient></defs>
+        <rect width="64" height="64" rx="14" fill="url(#nb)"/>
+        <path d="M9 54 Q28 53 40 28" fill="none" stroke="url(#nc)" stroke-width="4.5" stroke-linecap="round"/>
+        <g transform="translate(40 28) rotate(-30) scale(.34)">
+          <path d="M-44 -4 L-62 -28 L-36 -28 L-26 -6 Z" fill="#FF2D55"/><path d="M-46 2 L-64 12 L-40 8 Z" fill="#C4102F"/>
+          <path d="M-48 -6 Q-12 -16 30 -10 Q52 -5 52 0 Q52 5 30 10 Q-12 16 -48 6 Z" fill="#fff"/>
+          <path d="M-4 4 L-30 30 L-8 30 L20 5 Z" fill="#FF2D55"/><ellipse cx="14" cy="-6" rx="11" ry="5.5" fill="#7CCBFF"/>
+          <rect x="53" y="-14" width="4" height="28" rx="2" fill="#E8E8E8" opacity=".85"/>
+        </g>
+      </svg>
+      Sky<b>Crash</b>
+    </a>
+    <div class="links"><a href="#how">How it works</a><a href="#fair">Provably fair</a><a href="#pay">Payments</a><a href="#faq">FAQ</a></div>
+    <a class="btn ghost" href="/app/">Login</a>
+    <a class="btn primary" href="/app/">Play now</a>
+  </div>
+</nav>
+
+<main class="wrap">
+  <div class="hero">
+    <div>
+      <span class="pill">&#9992; Fast rounds &middot; Provably fair &middot; 18+</span>
+      <h1>Ride the curve.<br><span>Cash out before it crashes.</span></h1>
+      <p class="lead">SkyCrash is a fast crash game. Place a bet, watch the multiplier climb, and cash out at the perfect moment. Bet from just 100 RWF and deposit with Mobile Money or USDT.</p>
+      <div class="cta">
+        <a class="btn primary big" href="/app/">Play now</a>
+        <a class="btn big" href="#how">How it works</a>
+      </div>
+      <div class="fine">Gambling involves risk. 18+ only. Play responsibly.</div>
+    </div>
+
+    <div class="demo">
+      <span class="tag">LIVE DEMO &middot; SIMULATED</span>
+      <svg viewBox="0 0 600 340" id="demo" role="img" aria-label="Animated demo of a SkyCrash round">
+        <defs>
+          <radialGradient id="dbg" cx="50%" cy="60%" r="80%"><stop offset="0" stop-color="#3A1370"/><stop offset=".55" stop-color="#150827"/><stop offset="1" stop-color="#07030D"/></radialGradient>
+          <linearGradient id="dfill" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#E5173F" stop-opacity=".45"/><stop offset="1" stop-color="#E5173F" stop-opacity="0"/></linearGradient>
+        </defs>
+        <rect width="600" height="340" fill="url(#dbg)"/>
+        <g opacity=".05" fill="#fff">
+          <path d="M300 200 L-200 -200 L-60 -300 Z"/><path d="M300 200 L180 -300 L420 -300 Z"/><path d="M300 200 L800 -200 L660 -300 Z"/>
+          <path d="M300 200 L-300 120 L-300 260 Z"/><path d="M300 200 L900 120 L900 260 Z"/>
+        </g>
+        <path id="dFill" fill="url(#dfill)"/>
+        <path id="dCurve" fill="none" stroke="#FF2D55" stroke-width="5" stroke-linecap="round"/>
+        <g id="dPlane">
+          <path d="M-44 -4 L-62 -28 L-36 -28 L-26 -6 Z" fill="#B5102F"/><path d="M-46 2 L-64 12 L-40 8 Z" fill="#8E0C24"/>
+          <path d="M-48 -6 Q-12 -16 30 -10 Q52 -5 52 0 Q52 5 30 10 Q-12 16 -48 6 Z" fill="#E5173F"/>
+          <path d="M-4 4 L-30 30 L-8 30 L20 5 Z" fill="#B5102F"/><ellipse cx="14" cy="-6" rx="11" ry="5.5" fill="#BFE9FF"/>
+          <g id="dProp"><rect x="53" y="-14" width="4" height="28" rx="2" fill="#DDD" opacity=".85"/></g>
+        </g>
+        <text id="dLabel" x="300" y="118" text-anchor="middle" font-size="14" letter-spacing="3" fill="#ffffffaa" font-family="Poppins, system-ui, sans-serif" font-weight="600"></text>
+        <text id="dMult" x="300" y="190" text-anchor="middle" font-size="68" font-weight="800" fill="#fff" font-family="Poppins, system-ui, sans-serif"></text>
+      </svg>
+    </div>
+  </div>
+
+  <div class="ticker" id="tickerWrap" hidden><small>Recent rounds</small><span id="ticker"></span></div>
+
+  <section id="how">
+    <h2>Three steps. One decision.</h2>
+    <p class="sub">Every round lasts seconds. The only question: when do you cash out?</p>
+    <div class="grid g3">
+      <div class="card"><div class="num">1</div><h3>Place your bet</h3><p>Choose your stake during the short betting window before each round. Add an auto cash-out if you want the game to act for you.</p></div>
+      <div class="card"><div class="num">2</div><h3>Watch it climb</h3><p>The plane takes off and the multiplier keeps rising: 1.00x, 2.00x, 10.00x and beyond. Nobody knows how high it will go.</p></div>
+      <div class="card"><div class="num">3</div><h3>Cash out in time</h3><p>Tap cash out before the plane flies away and your stake is multiplied by the current value. Wait too long and the round is lost.</p></div>
+    </div>
+  </section>
+
+  <section>
+    <div class="grid g4">
+      <div class="card"><div class="ico">&#128273;</div><h3>Provably fair</h3><p>Every round can be checked with a cryptographic hash.</p></div>
+      <div class="card"><div class="ico">&#128241;</div><h3>MoMo &amp; crypto</h3><p>Deposit with MTN MoMo, Airtel Money or USDT.</p></div>
+      <div class="card"><div class="ico">&#9889;</div><h3>Auto cash-out</h3><p>Set a target multiplier and let the game cash out for you.</p></div>
+      <div class="card"><div class="ico">&#127760;</div><h3>Play anywhere</h3><p>Runs in your browser on phone, tablet or computer.</p></div>
+    </div>
+  </section>
+
+  <section id="fair">
+    <div class="fair">
+      <div>
+        <h2>Fair play you can check</h2>
+        <p class="sub" style="margin-bottom:0">Before betting opens, each round's secret seed is locked in with a public fingerprint (a SHA-256 hash). After the crash the seed is revealed. Hash it yourself: if it matches, the result could not have been changed after you bet. A round verifier page is coming soon.</p>
+      </div>
+      <div class="steps">
+        <div><em>1.</em> Fingerprint published: <em>sha256(seed)</em></div>
+        <div><em>2.</em> Players bet, the round runs</div>
+        <div><em>3.</em> Seed revealed after the crash</div>
+        <div><em>4.</em> You check: <em>sha256(seed) = fingerprint</em></div>
+        <!-- PASTE your published seed-chain terminal hash below, replacing the placeholder -->
+        <div class="hash" id="chainBox">Seed-chain commitment: <span id="chainHash">de42edbbe9095c421b6cd09e47ba7145b280b6dd378c3ccd2d5f78fd0b2c4922</span></div>
+      </div>
+    </div>
+  </section>
+
+  <section id="pay">
+    <h2>Deposit your way</h2>
+    <p class="sub">Add funds with Mobile Money or crypto. Deposits are confirmed before they appear in your balance, and withdrawals are reviewed before payout.</p>
+    <div class="pay"><span>MTN MoMo</span><span>Airtel Money</span><span>USDT (TRC20)</span></div>
+  </section>
+
+  <section id="winsSec" hidden>
+    <h2>Recent big wins</h2>
+    <p class="sub">Real cash-outs from the last 24 hours (player IDs are masked).</p>
+    <div class="wins" id="wins"></div>
+  </section>
+
+  <section id="faq">
+    <h2>Questions</h2>
+    <details><summary>How does a round work?</summary><p>A short betting window opens, then the plane takes off and the multiplier rises. You can cash out at any moment before it crashes. The crash point is decided before the round starts and cannot be changed.</p></details>
+    <details><summary>How do deposits and withdrawals work?</summary><p>Make a deposit request, send the payment as instructed, and your balance is updated once it is confirmed. Withdrawals are reviewed and then paid to your MoMo number or USDT (TRC20) address.</p></details>
+    <details><summary>What if my connection drops during a round?</summary><p>Use the auto cash-out option on your bet. The game will then cash out at your chosen multiplier even if you disconnect.</p></details>
+    <details><summary>Who can play?</summary><p>Adults only (18+). Please play responsibly and never bet money you cannot afford to lose.</p></details>
+  </section>
+
+  <div class="final">
+    <h2>Ready for take-off?</h2>
+    <p class="sub" style="margin:0 auto 24px">Create your account in seconds and play from 100 RWF.</p>
+    <a class="btn primary big" href="/app/">Play now</a>
+  </div>
+</main>
+
+<footer>
+  <div class="wrap">
+    <p><span class="age">18+</span> Gambling can be addictive. Play responsibly and only with money you can afford to lose.</p>
+    <!-- Add your gaming licence details here, e.g.: Licensed by ..., licence no. ... -->
+    <p>&copy; <span id="yr"></span> SkyCrash. All rights reserved.</p>
+  </div>
+</footer>
+
+<script>
+const $ = s => document.querySelector(s);
+const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const fmt = n => Number(n).toLocaleString('en-US');
+$('#yr').textContent = new Date().getFullYear();
+if (/PASTE/.test($('#chainHash').textContent)) $('#chainBox').hidden = true;   // hide until you paste the real hash
+
+// twinkling stars
+for (let i = 0; i < 55; i++) {
+  const s = document.createElement('i'); s.className = 'star';
+  s.style.left = Math.random() * 100 + 'vw'; s.style.top = Math.random() * 100 + 'vh';
+  s.style.animationDelay = (Math.random() * 3) + 's'; document.body.appendChild(s);
+}
+
+// ---------- hero demo (simulated) ----------
+(() => {
+  const W = 600, H = 340, GROW = 0.00045;                  // faster than the real game, just for the demo
+  const curve = $('#dCurve'), fillP = $('#dFill'), plane = $('#dPlane'), mult = $('#dMult'), label = $('#dLabel'), prop = $('#dProp');
+  const targets = [1.62, 2.4, 3.9, 1.25, 6.8, 2.05, 4.6, 12.3];
+  const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
+  let ti = 0, phase = 'wait', t0 = performance.now(), crash = targets[0];
+  const pt = u => [38 + u * W * 0.72, H * 0.84 - Math.pow(u, 1.7) * H * 0.60];
+  const colour = m => m < 2 ? '#34B4FF' : m < 10 ? '#B57CFF' : '#FF4FD8';
+
+  function placePlane(x, y, ang, op) {
+    plane.setAttribute('transform', `translate(${x} ${y}) rotate(${ang * 180 / Math.PI}) scale(.6)`);
+    plane.style.opacity = op;
+  }
+  function draw(m) {
+    const u = Math.min(1, Math.max(0, Math.log(m) / Math.LN10));
+    let d = 'M' + pt(0).join(' ');
+    for (let i = 1; i <= 40; i++) d += ' L' + pt(u * i / 40).join(' ');
+    const tip = pt(u);
+    curve.setAttribute('d', d);
+    fillP.setAttribute('d', d + ` L${tip[0]} ${H * 0.84} L${pt(0)[0]} ${H * 0.84} Z`);
+    const a = pt(Math.max(0, u - 0.03)), b = tip;
+    const ang = Math.min(0, Math.max(-0.85, Math.atan2(b[1] - a[1], b[0] - a[0])));
+    placePlane(tip[0], tip[1] + (u >= 1 ? Math.sin(performance.now() / 300) * 4 : 0), ang, 1);
+    return tip;
+  }
+  function frame(now) {
+    const el = now - t0;
+    prop.setAttribute('transform', `scale(1 ${0.25 + Math.abs(Math.sin(now / 35)) * 0.75})`);
+    if (phase === 'wait') {
+      const left = Math.max(0, 2200 - el);
+      curve.setAttribute('d', ''); fillP.setAttribute('d', '');
+      const p = pt(0); placePlane(p[0], p[1] + Math.sin(now / 300) * 3, -0.05, 1);
+      mult.textContent = ''; label.textContent = 'NEXT ROUND IN ' + Math.ceil(left / 1000);
+      if (left === 0) { phase = 'run'; t0 = now; label.textContent = ''; }
+    } else if (phase === 'run') {
+      const m = Math.exp(GROW * el);
+      if (m >= crash) { phase = 'crash'; t0 = now; label.textContent = 'FLEW AWAY!'; label.setAttribute('fill', '#FF3B5C'); mult.setAttribute('fill', '#FF3B5C'); mult.textContent = crash.toFixed(2) + 'x'; }
+      else { draw(m); mult.textContent = m.toFixed(2) + 'x'; mult.setAttribute('fill', colour(m)); }
+    } else {
+      const k = Math.min(1, el / 900), tip = pt(Math.min(1, Math.log(crash) / Math.LN10));
+      placePlane(tip[0] + W * 0.55 * k * k, tip[1] - H * 0.55 * k, -0.6, 1 - k);
+      if (el > 2300) { ti = (ti + 1) % targets.length; crash = targets[ti]; phase = 'wait'; t0 = now; label.setAttribute('fill', '#ffffffaa'); mult.setAttribute('fill', '#fff'); }
+    }
+    requestAnimationFrame(frame);
+  }
+  if (reduce) { draw(2.4); mult.textContent = '2.40x'; mult.setAttribute('fill', colour(2.4)); }
+  else requestAnimationFrame(frame);
+})();
+
+// ---------- real data from the game (hidden if the API is unreachable) ----------
+async function loadFeed() {
+  try {
+    const a = await (await fetch('/api/recent-rounds')).json();
+    if (a.length) {
+      $('#ticker').innerHTML = a.map(v => `<span class="chip ${v >= 10 ? 'c3' : v >= 2 ? 'c2' : 'c1'}">${Number(v).toFixed(2)}x</span>`).join(' ');
+      $('#tickerWrap').hidden = false;
+    }
+  } catch {}
+  try {
+    const a = await (await fetch('/api/top-wins')).json();
+    if (a.length) {
+      $('#wins').innerHTML = a.slice(0, 6).map(w => `<div class="win"><b>+${fmt(w.payout)} RWF</b><small>${esc(w.user)} &middot; ${Number(w.m).toFixed(2)}x &middot; bet ${fmt(w.amount)}</small></div>`).join('');
+      $('#winsSec').hidden = false;
+    }
+  } catch {}
+}
+loadFeed(); setInterval(loadFeed, 15000);
+</script>
+</body>
+</html>
